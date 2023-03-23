@@ -129,6 +129,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _createOffer() async {
     RTCSessionDescription description =
         await _peerConnection!.createOffer({'offerToReceiveVideo': 1});
+    _peerConnection!.setLocalDescription(description);
     var session = parse(description.sdp.toString());
     // print(json.encode(session));
     _offer = true;
@@ -138,8 +139,6 @@ class _MyHomePageState extends State<MyHomePage> {
       'type': description.type.toString(),
       "video_transform": "cartoon"
     }));
-
-    _peerConnection!.setLocalDescription(description);
   }
 
   void _createAnswer() async {
@@ -160,7 +159,18 @@ class _MyHomePageState extends State<MyHomePage> {
     var url = Uri.http('localhost:8080', 'offer');
     try {
       var response = await client.post(url, body: body);
-      print(response);
+      String jsonString = response.body;
+      dynamic session = await jsonDecode('$jsonString');
+
+      // String sdp = write(session, null);
+
+      RTCSessionDescription description =
+          new RTCSessionDescription(session['sdp'], session['type']);
+      // RTCSessionDescription description =
+      //     new RTCSessionDescription(sdp, _offer ? 'answer' : 'offer');
+      print(description.toMap());
+
+      await _peerConnection!.setRemoteDescription(description);
     } catch (e) {
       print(e);
     }
