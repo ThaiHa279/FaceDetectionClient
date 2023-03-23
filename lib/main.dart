@@ -1,9 +1,11 @@
 import 'dart:convert';
 // import 'dart:html';
-
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:sdp_transform/sdp_transform.dart';
+
+var client = http.Client();
 
 void main() {
   runApp(MyApp());
@@ -128,13 +130,14 @@ class _MyHomePageState extends State<MyHomePage> {
     RTCSessionDescription description =
         await _peerConnection!.createOffer({'offerToReceiveVideo': 1});
     var session = parse(description.sdp.toString());
-    print(json.encode(session));
+    // print(json.encode(session));
     _offer = true;
 
-    // print(json.encode({
-    //       'sdp': description.sdp.toString(),
-    //       'type': description.type.toString(),
-    //     }));
+    sendSDP(json.encode({
+      'sdp': description.sdp.toString(),
+      'type': description.type.toString(),
+      "video_transform": "cartoon"
+    }));
 
     _peerConnection!.setLocalDescription(description);
   }
@@ -153,16 +156,26 @@ class _MyHomePageState extends State<MyHomePage> {
     _peerConnection!.setLocalDescription(description);
   }
 
+  void sendSDP(body) async {
+    var url = Uri.http('localhost:8080', 'offer');
+    try {
+      var response = await client.post(url, body: body);
+      print(response);
+    } catch (e) {
+      print(e);
+    }
+  }
+
   void _setRemoteDescription() async {
     String jsonString = sdpController.text;
     dynamic session = await jsonDecode('$jsonString');
 
-    String sdp = write(session, null);
+    // String sdp = write(session, null);
 
-    // RTCSessionDescription description =
-    //     new RTCSessionDescription(session['sdp'], session['type']);
     RTCSessionDescription description =
-        new RTCSessionDescription(sdp, _offer ? 'answer' : 'offer');
+        new RTCSessionDescription(session['sdp'], session['type']);
+    // RTCSessionDescription description =
+    //     new RTCSessionDescription(sdp, _offer ? 'answer' : 'offer');
     print(description.toMap());
 
     await _peerConnection!.setRemoteDescription(description);
@@ -172,8 +185,8 @@ class _MyHomePageState extends State<MyHomePage> {
     String jsonString = sdpController.text;
     dynamic session = await jsonDecode('$jsonString');
     print(session['candidate']);
-    dynamic candidate =
-        new RTCIceCandidate(session['candidate'], session['sdpMid'], session['sdpMlineIndex']);
+    dynamic candidate = new RTCIceCandidate(
+        session['candidate'], session['sdpMid'], session['sdpMlineIndex']);
     await _peerConnection!.addCandidate(candidate);
   }
 
