@@ -7,6 +7,7 @@ import 'package:sdp_transform/sdp_transform.dart';
 
 var client = http.Client();
 
+List<RTCIceCandidate> candidates = [];
 void main() {
   runApp(MyApp());
 }
@@ -88,14 +89,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     pc.addStream(_localStream!);
 
-    pc.onIceCandidate = (e) {
+    pc.onIceCandidate = (e) async {
       if (e.candidate != null) {
-        print(json.encode({
-          'candidate': e.candidate.toString(),
-          'sdpMid': e.sdpMid.toString(),
-          'sdpMlineIndex': e.sdpMlineIndex,
-        }));
+        print("New ice candidate");
+        candidates.add(
+            RTCIceCandidate(e.candidate, e.sdpMid.toString(), e.sdpMlineIndex));
       }
+    };
+    pc.onIceGatheringState = (RTCIceGatheringState state) {
+      print('ICE gathering state changed: $state');
     };
 
     pc.onIceConnectionState = (e) {
@@ -127,11 +129,29 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _createOffer() async {
+    print("Before gathering candidates");
     RTCSessionDescription description =
         await _peerConnection!.createOffer({'offerToReceiveVideo': 1});
     _peerConnection!.setLocalDescription(description);
+
+    while (_peerConnection?.iceGatheringState !=
+        RTCIceGatheringState.RTCIceGatheringStateComplete) {
+      print("Gathering candidates...");
+      await Future.delayed(Duration(milliseconds: 500));
+    }
+    print("Creating offers with candidate:");
+    print(candidates);
+
+    for (RTCIceCandidate candidate in candidates) {
+      description.sdp =
+          description.sdp! + 'a=' + candidate.toMap()['candidate'] + '\r\n';
+    }
+    _peerConnection!.setLocalDescription(description);
+
     var session = parse(description.sdp.toString());
-    // print(json.encode(session));
+    print(session);
+    print("SDP to be sent");
+    print(json.encode(session));
     _offer = true;
 
     sendSDP(json.encode({
@@ -162,12 +182,8 @@ class _MyHomePageState extends State<MyHomePage> {
       String jsonString = response.body;
       dynamic session = await jsonDecode('$jsonString');
 
-      // String sdp = write(session, null);
-
       RTCSessionDescription description =
           new RTCSessionDescription(session['sdp'], session['type']);
-      // RTCSessionDescription description =
-      //     new RTCSessionDescription(sdp, _offer ? 'answer' : 'offer');
       print(description.toMap());
 
       await _peerConnection!.setRemoteDescription(description);
@@ -179,14 +195,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void _setRemoteDescription() async {
     String jsonString = sdpController.text;
     dynamic session = await jsonDecode('$jsonString');
-
-    // String sdp = write(session, null);
-
     RTCSessionDescription description =
         new RTCSessionDescription(session['sdp'], session['type']);
-    // RTCSessionDescription description =
-    //     new RTCSessionDescription(sdp, _offer ? 'answer' : 'offer');
-    print(description.toMap());
 
     await _peerConnection!.setRemoteDescription(description);
   }
