@@ -1,15 +1,23 @@
 import 'dart:convert';
+import 'dart:js';
 // import 'dart:html';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:sdp_transform/sdp_transform.dart';
+import 'package:device_preview/device_preview.dart';
 
 var client = http.Client();
 
 List<RTCIceCandidate> candidates = [];
 void main() {
-  runApp(MyApp());
+  runApp(DevicePreview(
+    enabled: true,
+    tools: [
+      ...DevicePreview.defaultTools,
+    ],
+    builder: (context) => MyApp(),
+  ));
 }
 
 class MyApp extends StatelessWidget {
@@ -21,7 +29,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Face Regconition'),
+      home: MyHomePage(title: ''),
     );
   }
 }
@@ -211,8 +219,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   SizedBox videoRenderers() => SizedBox(
-      height: 210,
-      child: Row(children: [
+      height: 500,
+      width: 400,
+      child: Column(children: [
         Flexible(
           child: new Container(
               key: new Key("local"),
@@ -230,51 +239,13 @@ class _MyHomePageState extends State<MyHomePage> {
       ]));
 
   Row offerAndAnswerButtons() =>
-      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: <Widget>[
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
         new ElevatedButton(
-          // onPressed: () {
-          //   return showDialog(
-          //       context: context,
-          //       builder: (context) {
-          //         return AlertDialog(
-          //           content: Text(sdpController.text),
-          //         );
-          //       });
-          // },
           onPressed: _createOffer,
-          child: Text('Offer'),
+          child: Text('Bắt Đầu Nhận Dạng'),
           // color: Colors.amber,
-        ),
-        ElevatedButton(
-          onPressed: _createAnswer,
-          child: Text('Answer'),
-          style: ElevatedButton.styleFrom(primary: Colors.amber),
         ),
       ]);
-
-  Row sdpCandidateButtons() =>
-      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: <Widget>[
-        ElevatedButton(
-          onPressed: _setRemoteDescription,
-          child: Text('Set Remote Desc'),
-          // color: Colors.amber,
-        ),
-        ElevatedButton(
-          onPressed: _addCandidate,
-          child: Text('Add Candidate'),
-          // color: Colors.amber,
-        )
-      ]);
-
-  Padding sdpCandidatesTF() => Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: TextField(
-          controller: sdpController,
-          keyboardType: TextInputType.multiline,
-          maxLines: 4,
-          maxLength: TextField.noMaxLength,
-        ),
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -288,23 +259,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             videoRenderers(),
             offerAndAnswerButtons(),
-            sdpCandidatesTF(),
-            sdpCandidateButtons(),
           ],
-        ))
-            // new Stack(
-            //   children: [
-            //     new Positioned(
-            //       top: 0.0,
-            //       right: 0.0,
-            //       left: 0.0,
-            //       bottom: 0.0,
-            //       child: new Container(
-            //         child: new RTCVideoView(_localRenderer)
-            //       )
-            //     )
-            //   ],
-            // ),
-            ));
+        ))));
   }
 }

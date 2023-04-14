@@ -31,6 +31,7 @@ dependencies:
   flutter_webrtc: ^0.6.4
   sdp_transform: ^0.3.0
   http: ^0.13.5
+  device_preview: ^1.1.0
 
 dev_dependencies:
   flutter_test:
